@@ -1,5 +1,5 @@
 import {test, assertEq} from './harness.js';
-import {computeDesired, reconcile} from '../com.keithvassallo.smart-dnd/lib/coordinator.js';
+import {computeDesired, reconcile} from '../smart-dnd@keithvassallo.com/lib/coordinator.js';
 
 test('computeDesired requires master and a source', () => {
     assertEq(computeDesired({masterEnabled: true, scheduleActive: true, calendarActive: false}), true);

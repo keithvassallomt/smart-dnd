@@ -1,5 +1,5 @@
 import {test, assertEq} from './harness.js';
-import {toMinutes, scheduleActiveAt, anyActiveAt, nextTransition} from '../com.keithvassallo.smart-dnd/lib/schedule.js';
+import {toMinutes, scheduleActiveAt, anyActiveAt, nextTransition} from '../smart-dnd@keithvassallo.com/lib/schedule.js';
 
 const weeknights = {name: 'W', days: [1, 2, 3, 4, 5], start: '22:00', end: '07:00', enabled: true};
 const daytime = {name: 'D', days: [3], start: '09:00', end: '17:00', enabled: true};

@@ -1,5 +1,5 @@
 import {test, assertEq} from './harness.js';
-import {parseList, serializeList, newId} from '../com.keithvassallo.smart-dnd/lib/store.js';
+import {parseList, serializeList, newId} from '../smart-dnd@keithvassallo.com/lib/store.js';
 
 test('serializeList then parseList round-trips', () => {
     const items = [{id: 'a', name: 'X'}, {id: 'b', name: 'Y'}];

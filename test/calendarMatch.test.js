@@ -1,6 +1,6 @@
 import {test, assertEq} from './harness.js';
 import {titleMatches, sourceAllowed, rulesActiveAt, calendarNextTransition}
-    from '../com.keithvassallo.smart-dnd/lib/calendarMatch.js';
+    from '../smart-dnd@keithvassallo.com/lib/calendarMatch.js';
 
 const r = (o) => ({name: 'R', matchType: 'contains', pattern: 'Meeting', calendars: [],
     enableOffsetMin: 0, disableOffsetMin: 0, enabled: true, ...o});

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-UUID=com.keithvassallo.smart-dnd
+UUID=smart-dnd@keithvassallo.com
 SRC="$(cd "$(dirname "$0")" && pwd)/$UUID"
 DEST="$HOME/.local/share/gnome-shell/extensions/$UUID"
 
