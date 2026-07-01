@@ -2,3 +2,4 @@ schemas/gschemas.compiled
 po/*.mo
 *.zip
 venv/
+.superpowers/

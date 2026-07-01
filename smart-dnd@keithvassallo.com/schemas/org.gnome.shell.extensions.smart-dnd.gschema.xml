@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.smart-dnd"
+          path="/org/gnome/shell/extensions/smart-dnd/">
+    <key name="master-enabled" type="b">
+      <default>true</default>
+      <summary>Enable automation</summary>
+      <description>Master switch for schedule and calendar automation.</description>
+    </key>
+    <key name="ignore-all-day" type="b">
+      <default>true</default>
+      <summary>Ignore all-day events</summary>
+      <description>Do not trigger DND for all-day calendar events.</description>
+    </key>
+    <key name="schedules" type="as">
+      <default>[]</default>
+      <summary>Time schedules</summary>
+      <description>Each entry is a JSON-encoded schedule object.</description>
+    </key>
+    <key name="calendar-rules" type="as">
+      <default>[]</default>
+      <summary>Calendar rules</summary>
+      <description>Each entry is a JSON-encoded calendar rule object.</description>
+    </key>
+  </schema>
+</schemalist>
