@@ -1,0 +1,12 @@
+{
+  "name": "Smart DND",
+  "description": "Automatically enable Do Not Disturb on a schedule or during matching calendar events.",
+  "uuid": "com.keithvassallo.smart-dnd",
+  "shell-version": ["50"],
+  "settings-schema": "org.gnome.shell.extensions.smart-dnd",
+  "url": "https://github.com/keithvassallomt/smart-dnd",
+  "version-name": "1.0",
+  "donations": {
+    "github": "keithvassallomt"
+  }
+}
