@@ -59,18 +59,19 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         page.add(group);
         window.add(page);
 
+        let rows = [];
         const rebuild = () => {
-            let rows = [];
+            for (const row of rows) group.remove(row);
             const schedules = parseList(settings.get_strv('schedules'));
             const save = () => settings.set_strv('schedules', serializeList(schedules));
-            for (const row of rows) group.remove(row);
             rows = schedules.map((sched, i) =>
                 this._scheduleRow(sched, () => { schedules.splice(i, 1); save(); rebuild(); }, save));
-            for (const row of rows) group.add(row);
-            group.add(this._addButtonRow('Add schedule', () => {
+            const addRow = this._addButtonRow('Add schedule', () => {
                 schedules.push({id: newId('sched'), ...SCHEDULE_DEFAULTS});
                 save(); rebuild();
-            }));
+            });
+            rows.push(addRow);
+            for (const row of rows) group.add(row);
         };
         rebuild();
     }
@@ -119,18 +120,19 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         window.add(page);
 
         const calendars = listCalendars();
+        let rows = [];
         const rebuild = () => {
-            let rows = [];
+            for (const row of rows) group.remove(row);
             const rules = parseList(settings.get_strv('calendar-rules'));
             const save = () => settings.set_strv('calendar-rules', serializeList(rules));
-            for (const row of rows) group.remove(row);
             rows = rules.map((rule, i) =>
                 this._ruleRow(rule, calendars, () => { rules.splice(i, 1); save(); rebuild(); }, save));
-            for (const row of rows) group.add(row);
-            group.add(this._addButtonRow('Add rule', () => {
+            const addRow = this._addButtonRow('Add rule', () => {
                 rules.push({id: newId('rule'), ...RULE_DEFAULTS});
                 save(); rebuild();
-            }));
+            });
+            rows.push(addRow);
+            for (const row of rows) group.add(row);
         };
         rebuild();
     }
