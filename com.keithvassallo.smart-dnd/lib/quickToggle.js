@@ -12,7 +12,6 @@ export const SmartDndIndicator = GObject.registerClass(
 class SmartDndIndicator extends QuickSettings.SystemIndicator {
     _init(extension, service) {
         super._init();
-        this._service = service;
 
         this._toggle = new QuickSettings.QuickMenuToggle({
             title: 'Smart DND',

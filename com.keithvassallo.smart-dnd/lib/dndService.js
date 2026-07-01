@@ -20,7 +20,7 @@ export class DndService {
         this._timerId = null;
         this._sleepSubId = 0;
         this._statusHandlers = [];
-        this._status = {active: false, reason: 'idle', next: null};
+        this._status = {active: false, reason: 'idle'};
     }
 
     connect(_signal, cb) { this._statusHandlers.push(cb); }
@@ -54,6 +54,7 @@ export class DndService {
         }
         this._calendar.stop();
         this._notify = null;
+        this._statusHandlers = [];
     }
 
     _clearTimer() {
