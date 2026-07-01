@@ -47,6 +47,9 @@ export class DndService {
 
     stop() {
         this._clearTimer();
+        if (this._owned && this._dndOn())
+            this._setDnd(false);
+        this._owned = false;
         this._settings.disconnectObject(this);
         if (this._sleepSubId) {
             Gio.DBus.system.signal_unsubscribe(this._sleepSubId);

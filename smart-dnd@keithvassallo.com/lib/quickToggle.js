@@ -1,4 +1,5 @@
 import GObject from 'gi://GObject';
+import Gio from 'gi://Gio';
 import * as QuickSettings from 'resource:///org/gnome/shell/ui/quickSettings.js';
 
 function subtitleFor(status) {
@@ -20,7 +21,7 @@ class SmartDndIndicator extends QuickSettings.SystemIndicator {
             toggleMode: true,
         });
         extension.getSettings().bind('master-enabled',
-            this._toggle, 'checked', 0 /* Gio.SettingsBindFlags.DEFAULT */);
+            this._toggle, 'checked', Gio.SettingsBindFlags.DEFAULT);
 
         this._toggle.menu.setHeader('notifications-disabled-symbolic', 'Smart DND');
         this._toggle.menu.addAction('Settings', () => extension.openPreferences());
@@ -33,6 +34,7 @@ class SmartDndIndicator extends QuickSettings.SystemIndicator {
     }
 
     destroy() {
+        Gio.Settings.unbind(this._toggle, 'checked');
         this.quickSettingsItems.forEach(item => item.destroy());
         super.destroy();
     }
