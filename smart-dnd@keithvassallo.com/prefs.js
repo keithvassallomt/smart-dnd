@@ -6,12 +6,16 @@ import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/ex
 
 import {parseList, serializeList, newId, SCHEDULE_DEFAULTS, RULE_DEFAULTS}
     from './lib/store.js';
+import {offsetToUi, uiToOffset, MAG_MINUTES} from './lib/offset.js';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MATCH_TYPES = [
     ['contains', 'Contains'], ['startsWith', 'Starts with'],
     ['endsWith', 'Ends with'], ['regex', 'Matches regex'],
 ];
+const MAG_LABELS = ['1 minute', '5 minutes', '10 minutes', '15 minutes', 'Custom'];
+const ENABLE_DIR = ['At event start', 'Before event', 'After event'];
+const DISABLE_DIR = ['At event end', 'Before event end', 'After event end'];
 
 function listCalendars() {
     try {
@@ -24,23 +28,63 @@ function listCalendars() {
     }
 }
 
+function iconButton(iconName, tooltip, cssClasses) {
+    return new Gtk.Button({
+        icon_name: iconName, tooltip_text: tooltip,
+        css_classes: cssClasses, valign: Gtk.Align.CENTER,
+    });
+}
+
 export default class SmartDndPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         const settings = this.getSettings();
         window._settings = settings;
+        window.set_default_size(760, 640);
 
-        this._fillGeneral(window, settings);
-        this._fillSchedules(window, settings);
-        this._fillCalendar(window, settings);
+        const stack = new Adw.ViewStack();
+        this._buildSchedulePage(stack, settings);
+        this._buildCalendarPage(stack, settings);
+
+        const switcher = new Adw.ViewSwitcher({stack, policy: Adw.ViewSwitcherPolicy.WIDE});
+        const header = new Adw.HeaderBar({title_widget: switcher});
+
+        const menu = new Gio.Menu();
+        menu.append('General Settings', 'prefs.general');
+        menu.append('About Smart DND', 'prefs.about');
+        header.pack_end(new Gtk.MenuButton({
+            icon_name: 'open-menu-symbolic', menu_model: menu, primary: true,
+        }));
+
+        const actions = new Gio.SimpleActionGroup();
+        const general = new Gio.SimpleAction({name: 'general'});
+        general.connect('activate', () => this._openGeneral(window, settings));
+        actions.add_action(general);
+        const about = new Gio.SimpleAction({name: 'about'});
+        about.connect('activate', () => this._openAbout(window));
+        actions.add_action(about);
+        window.insert_action_group('prefs', actions);
+
+        const toolbar = new Adw.ToolbarView();
+        toolbar.add_top_bar(header);
+        toolbar.set_content(stack);
+        window.set_content(toolbar);
     }
 
-    _fillGeneral(window, settings) {
-        const page = new Adw.PreferencesPage({title: 'General', icon_name: 'preferences-system-symbolic'});
+    _openGeneral(window, settings) {
+        const dialog = new Adw.PreferencesDialog({title: 'General Settings'});
+        const page = new Adw.PreferencesPage();
         const group = new Adw.PreferencesGroup();
 
         const master = new Adw.SwitchRow({title: 'Enable automation'});
         settings.bind('master-enabled', master, 'active', Gio.SettingsBindFlags.DEFAULT);
         group.add(master);
+
+        const tile = new Adw.SwitchRow({
+            title: 'Show Quick Settings tile',
+            subtitle: 'Show the Smart DND toggle in Quick Settings',
+        });
+        settings.bind('show-quick-settings', tile, 'active', Gio.SettingsBindFlags.DEFAULT);
+        group.add(tile);
 
         const allDay = new Adw.SwitchRow({
             title: 'Ignore all-day events',
@@ -50,44 +94,67 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         group.add(allDay);
 
         page.add(group);
-        window.add(page);
+        dialog.add(page);
+        dialog.present(window);
     }
 
-    _fillSchedules(window, settings) {
-        const page = new Adw.PreferencesPage({title: 'Schedules', icon_name: 'alarm-symbolic'});
+    _openAbout(window) {
+        const about = new Adw.AboutDialog({
+            application_name: 'Smart DND',
+            application_icon: 'notifications-disabled-symbolic',
+            version: '1.0',
+            developer_name: 'Keith Vassallo',
+            license_type: Gtk.License.GPL_3_0,
+            website: 'https://github.com/keithvassallomt/smart-dnd',
+            comments: 'Automatically enable Do Not Disturb on a schedule or during matching calendar events.',
+        });
+        about.present(window);
+    }
+
+    _buildSchedulePage(stack, settings) {
+        const page = new Adw.PreferencesPage();
         const group = new Adw.PreferencesGroup({title: 'Schedules'});
+        const addBtn = iconButton('list-add-symbolic', 'Add schedule', ['flat']);
+        group.set_header_suffix(addBtn);
         page.add(group);
-        window.add(page);
+        stack.add_titled_with_icon(page, 'schedule', 'Schedule', 'alarm-symbolic');
 
         let rows = [];
         const rebuild = () => {
-            for (const row of rows) group.remove(row);
+            for (const r of rows) group.remove(r);
             const schedules = parseList(settings.get_strv('schedules'));
             const save = () => settings.set_strv('schedules', serializeList(schedules));
             rows = schedules.map((sched, i) =>
                 this._scheduleRow(sched, () => { schedules.splice(i, 1); save(); rebuild(); }, save));
-            const addRow = this._addButtonRow('Add schedule', () => {
-                schedules.push({id: newId('sched'), ...SCHEDULE_DEFAULTS});
-                save(); rebuild();
-            });
-            rows.push(addRow);
-            for (const row of rows) group.add(row);
+            for (const r of rows) group.add(r);
         };
+        addBtn.connect('clicked', () => {
+            const schedules = parseList(settings.get_strv('schedules'));
+            schedules.push({id: newId('sched'), ...SCHEDULE_DEFAULTS});
+            settings.set_strv('schedules', serializeList(schedules));
+            rebuild();
+        });
         rebuild();
     }
 
     _scheduleRow(sched, onRemove, save) {
-        const row = new Adw.ExpanderRow({title: sched.name || 'Schedule',
-            subtitle: `${sched.start} – ${sched.end}`});
+        const row = new Adw.ExpanderRow({
+            title: sched.name || 'Schedule',
+            subtitle: `${sched.start} – ${sched.end}`,
+        });
+        const trash = iconButton('user-trash-symbolic', 'Remove', ['flat']);
+        trash.connect('clicked', onRemove);
+        row.add_suffix(trash);
 
         const name = new Adw.EntryRow({title: 'Name', text: sched.name});
-        name.connect('changed', () => { sched.name = name.text; row.title = name.text || 'Schedule'; save(); });
+        name.connect('changed', () => {
+            sched.name = name.text; row.title = name.text || 'Schedule'; save();
+        });
         row.add_row(name);
 
-        const start = this._timeRow('Start', sched.start, v => { sched.start = v; row.subtitle = `${sched.start} – ${sched.end}`; save(); });
-        const end = this._timeRow('End', sched.end, v => { sched.end = v; row.subtitle = `${sched.start} – ${sched.end}`; save(); });
-        row.add_row(start);
-        row.add_row(end);
+        const setSub = () => { row.subtitle = `${sched.start} – ${sched.end}`; };
+        row.add_row(this._timeRow('Start', sched.start, v => { sched.start = v; setSub(); save(); }));
+        row.add_row(this._timeRow('End', sched.end, v => { sched.end = v; setSub(); save(); }));
 
         const days = new Adw.ActionRow({title: 'Days'});
         const box = new Gtk.Box({spacing: 4, valign: Gtk.Align.CENTER});
@@ -107,88 +174,134 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         const enabled = new Adw.SwitchRow({title: 'Enabled', active: sched.enabled});
         enabled.connect('notify::active', () => { sched.enabled = enabled.active; save(); });
         row.add_row(enabled);
-
-        row.add_row(this._removeButtonRow(onRemove));
         return row;
     }
 
-    _fillCalendar(window, settings) {
-        const page = new Adw.PreferencesPage({title: 'Calendar', icon_name: 'x-office-calendar-symbolic'});
-        const group = new Adw.PreferencesGroup({title: 'Calendar rules',
-            description: 'Turn on DND during matching events in your calendars'});
+    _buildCalendarPage(stack, settings) {
+        const page = new Adw.PreferencesPage();
+        const group = new Adw.PreferencesGroup({
+            title: 'Calendar rules',
+            description: 'Turn on DND during matching events in your calendars',
+        });
+        const addBtn = iconButton('list-add-symbolic', 'Add rule', ['flat']);
+        group.set_header_suffix(addBtn);
         page.add(group);
-        window.add(page);
+        stack.add_titled_with_icon(page, 'calendar', 'Calendar', 'x-office-calendar-symbolic');
 
         const calendars = listCalendars();
         let rows = [];
         const rebuild = () => {
-            for (const row of rows) group.remove(row);
+            for (const r of rows) group.remove(r);
             const rules = parseList(settings.get_strv('calendar-rules'));
             const save = () => settings.set_strv('calendar-rules', serializeList(rules));
             rows = rules.map((rule, i) =>
                 this._ruleRow(rule, calendars, () => { rules.splice(i, 1); save(); rebuild(); }, save));
-            const addRow = this._addButtonRow('Add rule', () => {
-                rules.push({id: newId('rule'), ...RULE_DEFAULTS});
-                save(); rebuild();
-            });
-            rows.push(addRow);
-            for (const row of rows) group.add(row);
+            for (const r of rows) group.add(r);
         };
+        addBtn.connect('clicked', () => {
+            const rules = parseList(settings.get_strv('calendar-rules'));
+            rules.push({id: newId('rule'), ...RULE_DEFAULTS});
+            settings.set_strv('calendar-rules', serializeList(rules));
+            rebuild();
+        });
         rebuild();
     }
 
     _ruleRow(rule, calendars, onRemove, save) {
         const row = new Adw.ExpanderRow({title: rule.name || 'Rule', subtitle: rule.pattern});
+        const trash = iconButton('user-trash-symbolic', 'Remove', ['flat']);
+        trash.connect('clicked', onRemove);
+        row.add_suffix(trash);
 
         const name = new Adw.EntryRow({title: 'Name', text: rule.name});
-        name.connect('changed', () => { rule.name = name.text; row.title = name.text || 'Rule'; save(); });
+        name.connect('changed', () => {
+            rule.name = name.text; row.title = name.text || 'Rule'; save();
+        });
         row.add_row(name);
 
-        const match = new Adw.ComboRow({title: 'Match',
-            model: Gtk.StringList.new(MATCH_TYPES.map(m => m[1]))});
+        const match = new Adw.ComboRow({
+            title: 'Match', model: Gtk.StringList.new(MATCH_TYPES.map(m => m[1])),
+        });
         match.selected = Math.max(0, MATCH_TYPES.findIndex(m => m[0] === rule.matchType));
-        match.connect('notify::selected', () => { rule.matchType = MATCH_TYPES[match.selected][0]; save(); });
+        match.connect('notify::selected', () => {
+            rule.matchType = MATCH_TYPES[match.selected][0]; save();
+        });
         row.add_row(match);
 
         const pattern = new Adw.EntryRow({title: 'Pattern', text: rule.pattern});
-        pattern.connect('changed', () => { rule.pattern = pattern.text; row.subtitle = pattern.text; save(); });
+        pattern.connect('changed', () => {
+            rule.pattern = pattern.text; row.subtitle = pattern.text; save();
+        });
         row.add_row(pattern);
 
         if (calendars.length > 0)
             row.add_row(this._calendarPicker(rule, calendars, save));
 
-        row.add_row(this._offsetRow('Turn on', rule, 'enableOffsetMin', save));
-        row.add_row(this._offsetRow('Turn off', rule, 'disableOffsetMin', save));
+        row.add_row(this._offsetRow('Enable DND', ENABLE_DIR, rule, 'enableOffsetMin', save));
+        row.add_row(this._offsetRow('Disable DND', DISABLE_DIR, rule, 'disableOffsetMin', save));
 
         const enabled = new Adw.SwitchRow({title: 'Enabled', active: rule.enabled});
         enabled.connect('notify::active', () => { rule.enabled = enabled.active; save(); });
         row.add_row(enabled);
-
-        row.add_row(this._removeButtonRow(onRemove));
         return row;
     }
 
     _calendarPicker(rule, calendars, save) {
-        const row = new Adw.ExpanderRow({title: 'Calendars',
-            subtitle: rule.calendars.length === 0 ? 'All calendars' : `${rule.calendars.length} selected`});
+        const row = new Adw.ExpanderRow({
+            title: 'Calendars',
+            subtitle: rule.calendars.length === 0 ? 'All calendars' : `${rule.calendars.length} selected`,
+        });
+        const setSub = () => {
+            row.subtitle = rule.calendars.length === 0 ? 'All calendars' : `${rule.calendars.length} selected`;
+        };
         for (const cal of calendars) {
             const sw = new Adw.SwitchRow({title: cal.name, active: rule.calendars.includes(cal.uid)});
             sw.connect('notify::active', () => {
                 const set = new Set(rule.calendars);
                 sw.active ? set.add(cal.uid) : set.delete(cal.uid);
                 rule.calendars = [...set];
-                row.subtitle = rule.calendars.length === 0 ? 'All calendars' : `${rule.calendars.length} selected`;
-                save();
+                setSub(); save();
             });
             row.add_row(sw);
         }
         return row;
     }
 
-    _offsetRow(title, rule, key, save) {
-        const row = new Adw.SpinRow({title: `${title} (minutes offset)`,
-            adjustment: new Gtk.Adjustment({lower: -120, upper: 120, step_increment: 5, value: rule[key]})});
-        row.connect('notify::value', () => { rule[key] = row.value; save(); });
+    _offsetRow(title, dirLabels, rule, key, save) {
+        const ui = offsetToUi(rule[key]);
+        const row = new Adw.ActionRow({title});
+        const box = new Gtk.Box({spacing: 6, valign: Gtk.Align.CENTER});
+
+        const dir = new Gtk.DropDown({model: Gtk.StringList.new(dirLabels)});
+        dir.selected = ui.direction;
+        const mag = new Gtk.DropDown({model: Gtk.StringList.new(MAG_LABELS)});
+        mag.selected = ui.magIndex;
+        const custom = new Gtk.SpinButton({
+            adjustment: new Gtk.Adjustment({
+                lower: 1, upper: 600, step_increment: 1, value: ui.custom || 1,
+            }),
+            valign: Gtk.Align.CENTER,
+        });
+
+        const applySensitivity = () => {
+            const atEvent = dir.selected === 0;
+            mag.sensitive = !atEvent;
+            custom.sensitive = !atEvent && mag.selected === MAG_MINUTES.length;
+        };
+        const sync = () => {
+            applySensitivity();
+            rule[key] = uiToOffset(dir.selected, mag.selected, custom.value);
+            save();
+        };
+        dir.connect('notify::selected', sync);
+        mag.connect('notify::selected', sync);
+        custom.connect('notify::value', sync);
+        applySensitivity();
+
+        box.append(dir);
+        box.append(mag);
+        box.append(custom);
+        row.add_suffix(box);
         return row;
     }
 
@@ -197,23 +310,6 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         row.connect('changed', () => {
             if (/^([01]\d|2[0-3]):[0-5]\d$/.test(row.text)) onChange(row.text);
         });
-        return row;
-    }
-
-    _addButtonRow(label, onClick) {
-        const row = new Adw.ActionRow();
-        const btn = new Gtk.Button({label, halign: Gtk.Align.CENTER, hexpand: true,
-            css_classes: ['suggested-action']});
-        btn.connect('clicked', onClick);
-        row.set_child(btn);
-        return row;
-    }
-
-    _removeButtonRow(onRemove) {
-        const row = new Adw.ActionRow();
-        const btn = new Gtk.Button({label: 'Remove', css_classes: ['destructive-action']});
-        btn.connect('clicked', onRemove);
-        row.add_suffix(btn);
         return row;
     }
 }
