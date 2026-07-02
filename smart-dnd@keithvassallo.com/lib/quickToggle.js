@@ -1,12 +1,16 @@
 import GObject from 'gi://GObject';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import * as QuickSettings from 'resource:///org/gnome/shell/ui/quickSettings.js';
+import {formatWhen} from './format.js';
 
 function subtitleFor(status) {
-    if (!status.active) return 'Idle';
-    if (status.reason === 'schedule') return 'On (scheduled)';
-    if (status.reason === 'calendar') return 'On during event';
-    return 'On';
+    const nowMs = GLib.get_real_time() / 1000;
+    if (status.active) {
+        const base = status.reason === 'calendar' ? 'On during event' : 'On';
+        return status.nextOffMs ? `${base} · until ${formatWhen(nowMs, status.nextOffMs)}` : base;
+    }
+    return status.nextOnMs ? `Next: ${formatWhen(nowMs, status.nextOnMs)}` : 'None scheduled';
 }
 
 export const SmartDndIndicator = GObject.registerClass(
