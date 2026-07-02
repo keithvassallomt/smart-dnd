@@ -12,7 +12,7 @@ GNOME ships a manual Do Not Disturb toggle but no way to automate it. Smart DND
 adds that automation, driven entirely from a Quick Settings tile and a clean
 preferences window.
 
-- **Supported GNOME version:** 50
+- **Supported GNOME versions:** 49, 50
 - **UUID:** `smart-dnd@keithvassallo.com`
 - **License:** GPL-3.0-or-later
 

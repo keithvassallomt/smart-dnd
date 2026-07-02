@@ -3,3 +3,4 @@ po/*.mo
 *.zip
 venv/
 .superpowers/
+plan.md
