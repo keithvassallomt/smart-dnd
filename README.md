@@ -58,6 +58,10 @@ preferences window.
 
 ## Installation
 
+### From extensions.gnome.org
+
+_Coming soon._
+
 ### From source
 
 ```bash
@@ -78,10 +82,6 @@ Open its settings with:
 ```bash
 gnome-extensions prefs smart-dnd@keithvassallo.com
 ```
-
-### From extensions.gnome.org
-
-_Coming soon._
 
 ## Usage
 
