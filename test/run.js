@@ -5,5 +5,6 @@ import './calendarMatch.test.js';
 import './coordinator.test.js';
 import './format.test.js';
 import './nextActivation.test.js';
+import './offset.test.js';
 import {run} from './harness.js';
 run();
