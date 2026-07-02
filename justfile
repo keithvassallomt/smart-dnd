@@ -2,7 +2,7 @@ uuid := "smart-dnd@keithvassallo.com"
 repo := "keithvassallomt/smart-dnd"
 # extensions.gnome.org page for the release badge; set once the extension is
 # published (e.g. https://extensions.gnome.org/extension/NNNN/smart-dnd/).
-ego_url := ""
+ego_url := "https://extensions.gnome.org/extension/10322/smart-dnd/"
 ego_badge := "https://github.com/user-attachments/assets/a9aa1a44-8d52-465b-980b-6f8e6c811fee"
 
 # List available recipes

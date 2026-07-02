@@ -56,7 +56,9 @@ preferences window.
 
 ### From extensions.gnome.org
 
-_Coming soon._
+<a href="https://extensions.gnome.org/extension/10322/smart-dnd/"><img width="228" alt="Get it on GNOME Extensions" src="https://github.com/user-attachments/assets/a9aa1a44-8d52-465b-980b-6f8e6c811fee" /></a>
+
+Install from [extensions.gnome.org](https://extensions.gnome.org/extension/10322/smart-dnd/) — it handles updates automatically.
 
 ### From source
 
