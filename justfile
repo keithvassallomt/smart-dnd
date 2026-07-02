@@ -53,10 +53,22 @@ release version kind="Feature release":
     grep -q "^## \[{{version}}\]" CHANGELOG.md || { echo "No CHANGELOG.md entry for {{version}}." >&2; exit 1; }
 
     versions=$(python3 -c "import json;print(' and '.join(json.load(open('{{uuid}}/metadata.json'))['shell-version']))")
+    # Extract the version's CHANGELOG section, promote ### -> ##, then reflow
+    # wrapped lines into single lines per bullet/paragraph (GitHub renders release
+    # notes with hard line breaks, so wrapped source would otherwise show narrow).
     section=$(awk -v v="{{version}}" '
         $0 ~ "^## \\[" v "\\]" {b=1; next}
         b && (/^## / || /^\[[^]]+\]: /) {exit}
-        b {print}' CHANGELOG.md | sed 's/^### /## /' | sed '/./,$!d' | tac | sed '/./,$!d' | tac)
+        b {print}' CHANGELOG.md \
+        | sed 's/^### /## /' \
+        | awk '
+            function flush() { if (buf != "") { print buf; buf = "" } }
+            /^#{1,6} / { flush(); print; next }
+            /^- / { flush(); buf = $0; next }
+            /^[[:space:]]*$/ { flush(); print ""; next }
+            { s = $0; sub(/^[[:space:]]+/, "", s); buf = (buf == "" ? s : buf " " s) }
+            END { flush() }' \
+        | sed '/./,$!d' | tac | sed '/./,$!d' | tac)
     prev=$(git tag --sort=-v:refname | head -n1 || true)
 
     notes=$(mktemp)

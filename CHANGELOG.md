@@ -12,8 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2026-07-02
 
-Initial release.
-
 ### Added
 
 - **Scheduled Do Not Disturb** — turn DND on between two times on the days of the
@@ -25,7 +23,7 @@ Initial release.
 - **Configurable offsets** — start and end DND *at*, *before*, or *after* an event
   (1, 5, 10, 15 minutes, or a custom value).
 - **Quick Settings tile** — toggle automation on/off and see the next scheduled
-  activation at a glance (e.g. "Next: Tomorrow, 09:36"). The tile can be hidden
+  activation at a glance (e.g. "Mon @ 09:30"). The tile can be hidden
   from preferences.
 - **Preferences window** — an app-style window with Schedule and Calendar views
   and a primary menu holding General settings and About.
