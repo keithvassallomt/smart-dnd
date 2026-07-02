@@ -44,6 +44,12 @@ function iconButton(iconName, tooltip, cssClasses) {
     });
 }
 
+function emptyState(iconName, title, description) {
+    const status = new Adw.StatusPage({icon_name: iconName, title, description});
+    status.add_css_class('compact');
+    return status;
+}
+
 export default class SmartDndPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         const settings = this.getSettings();
@@ -145,8 +151,11 @@ export default class SmartDndPreferences extends ExtensionPreferences {
             for (const r of rows) group.remove(r);
             const schedules = parseList(settings.get_strv('schedules'));
             const save = () => settings.set_strv('schedules', serializeList(schedules));
-            rows = schedules.map((sched, i) =>
-                this._scheduleRow(sched, () => { schedules.splice(i, 1); save(); rebuild(); }, save));
+            rows = schedules.length === 0
+                ? [emptyState('alarm-symbolic', 'No schedules',
+                    'Click the + button above to create your first schedule')]
+                : schedules.map((sched, i) =>
+                    this._scheduleRow(sched, () => { schedules.splice(i, 1); save(); rebuild(); }, save));
             for (const r of rows) group.add(r);
         };
         addBtn.connect('clicked', () => {
@@ -224,12 +233,15 @@ export default class SmartDndPreferences extends ExtensionPreferences {
             const rules = parseList(settings.get_strv('calendar-rules'));
             const save = () => settings.set_strv('calendar-rules', serializeList(rules));
             updaters = [];
-            rows = rules.map((rule, i) => {
-                const built = this._ruleRow(rule, calendars, settings, getEvents,
-                    () => { rules.splice(i, 1); save(); rebuild(); }, save);
-                updaters.push(built.updateNext);
-                return built.row;
-            });
+            rows = rules.length === 0
+                ? [emptyState('x-office-calendar-symbolic', 'No calendar rules',
+                    'Click the + button above to create your first calendar rule')]
+                : rules.map((rule, i) => {
+                    const built = this._ruleRow(rule, calendars, settings, getEvents,
+                        () => { rules.splice(i, 1); save(); rebuild(); }, save);
+                    updaters.push(built.updateNext);
+                    return built.row;
+                });
             for (const r of rows) group.add(r);
             refresh();
         };
