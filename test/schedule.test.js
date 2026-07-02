@@ -46,3 +46,10 @@ test('nextTransition finds the next boundary', () => {
 test('nextTransition returns null with no schedules', () => {
     assertEq(nextTransition([], Date.now()), null);
 });
+test('nextTransition is DST-correct across the spring-forward day', () => {
+    // In DST zones a day with a clock change is not 24h; the boundary must land
+    // at the real local wall-clock time, not an hour off.
+    const s = {name: 'D', days: [0], start: '09:00', end: '10:00', enabled: true};
+    const now = new Date(2026, 2, 28, 12, 0).getTime(); // Sat before the change
+    assertEq(nextTransition([s], now), new Date(2026, 2, 29, 9, 0).getTime());
+});

@@ -35,3 +35,10 @@ test('nextEnable applies enable offset and skips non-matches', () => {
     const noMatch = {summary: 'Lunch', start: 5000, end: 6000, sourceUid: 'a', allDay: false};
     assertEq(nextEnable([rule], [noMatch], 1000 * S, true), null);
 });
+test('nextStart is DST-correct across the spring-forward day', () => {
+    // Europe/London springs forward on 2026-03-29; the Sunday 09:00 start must
+    // resolve to real local 09:00, not shift by the DST hour.
+    const s = {name: 'D', days: [0], start: '09:00', end: '10:00', enabled: true};
+    const now = new Date(2026, 2, 28, 12, 0).getTime();
+    assertEq(nextStart([s], now), new Date(2026, 2, 29, 9, 0).getTime());
+});
