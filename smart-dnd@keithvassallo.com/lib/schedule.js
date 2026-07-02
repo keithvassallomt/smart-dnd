@@ -52,3 +52,23 @@ export function nextTransition(schedules, nowMs) {
     }
     return best;
 }
+
+export function nextStart(schedules, nowMs) {
+    const enabled = schedules.filter(s => s.enabled && toMinutes(s.start) !== toMinutes(s.end));
+    if (enabled.length === 0) return null;
+    const now = new Date(nowMs);
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    let best = null;
+    for (const s of enabled) {
+        const start = toMinutes(s.start);
+        for (let d = 0; d <= 7; d++) {
+            const dayStart = midnight + d * DAY_MS;
+            const dow = new Date(dayStart).getDay();
+            if (s.days.includes(dow)) {
+                const ts = dayStart + start * MIN_MS;
+                if (ts > nowMs && (best === null || ts < best)) best = ts;
+            }
+        }
+    }
+    return best;
+}

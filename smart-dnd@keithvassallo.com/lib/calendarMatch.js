@@ -50,3 +50,11 @@ export function calendarNextTransition(rules, events, nowMs, ignoreAllDay) {
     }
     return best;
 }
+
+export function nextEnable(rules, events, nowMs, ignoreAllDay) {
+    let best = null;
+    for (const w of matchingWindows(rules, events, ignoreAllDay)) {
+        if (w.on > nowMs && (best === null || w.on < best)) best = w.on;
+    }
+    return best;
+}
