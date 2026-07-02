@@ -20,7 +20,7 @@ export class DndService {
         this._timerId = null;
         this._sleepSubId = 0;
         this._statusHandlers = [];
-        this._status = {active: false, reason: 'idle'};
+        this._status = {active: false, reason: 'idle', nextOnMs: null, nextOffMs: null};
     }
 
     connect(_signal, cb) { this._statusHandlers.push(cb); }

@@ -58,7 +58,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
 
         const stack = new Adw.ViewStack();
         this._buildSchedulePage(stack, settings);
-        this._buildCalendarPage(stack, settings);
+        this._buildCalendarPage(window, stack, settings);
 
         const switcher = new Adw.ViewSwitcher({stack, policy: Adw.ViewSwitcherPolicy.WIDE});
         const header = new Adw.HeaderBar({title_widget: switcher});
@@ -195,7 +195,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         return row;
     }
 
-    _buildCalendarPage(stack, settings) {
+    _buildCalendarPage(window, stack, settings) {
         const page = new Adw.PreferencesPage();
         const group = new Adw.PreferencesGroup({
             title: 'Calendar rules',
@@ -209,17 +209,16 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         const calendars = listCalendars();
         let rows = [];
         let updaters = [];
-        const refresh = () => {
-            const events = this._lastCalendarEvents ?? [];
-            for (const u of updaters) u(events);
-        };
+        let latestEvents = [];
+        const getEvents = () => latestEvents;
+        const refresh = () => { for (const u of updaters) u(latestEvents); };
         const rebuild = () => {
             for (const r of rows) group.remove(r);
             const rules = parseList(settings.get_strv('calendar-rules'));
             const save = () => settings.set_strv('calendar-rules', serializeList(rules));
             updaters = [];
             rows = rules.map((rule, i) => {
-                const built = this._ruleRow(rule, calendars,
+                const built = this._ruleRow(rule, calendars, getEvents,
                     () => { rules.splice(i, 1); save(); rebuild(); }, save);
                 updaters.push(built.updateNext);
                 return built.row;
@@ -234,10 +233,9 @@ export default class SmartDndPreferences extends ExtensionPreferences {
             rebuild();
         });
         rebuild();
-        this._calendarProxy = this._queryUpcomingEvents(events => {
-            this._lastCalendarEvents = events;
-            refresh();
-        });
+
+        let proxy = this._queryUpcomingEvents(events => { latestEvents = events; refresh(); });
+        window.connect('close-request', () => { proxy = null; return false; });
     }
 
     _queryUpcomingEvents(onEvents) {
@@ -268,7 +266,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         return proxy;
     }
 
-    _ruleRow(rule, calendars, onRemove, save) {
+    _ruleRow(rule, calendars, getEvents, onRemove, save) {
         const row = new Adw.ExpanderRow({title: escapeMarkup(rule.name || 'Rule')});
         const updateNext = (events) => {
             const now = GLib.get_real_time() / 1000;
@@ -277,7 +275,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
             const base = rule.pattern || '(no pattern)';
             row.subtitle = escapeMarkup(`${base} · Next: ${when}`);
         };
-        updateNext(this._lastCalendarEvents ?? []);
+        updateNext(getEvents());
 
         const trash = iconButton('user-trash-symbolic', 'Remove', ['flat']);
         trash.connect('clicked', onRemove);
@@ -301,7 +299,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         const pattern = new Adw.EntryRow({title: 'Pattern', text: rule.pattern});
         pattern.connect('changed', () => {
             rule.pattern = pattern.text; save();
-            updateNext(this._lastCalendarEvents ?? []);
+            updateNext(getEvents());
         });
         row.add_row(pattern);
 
