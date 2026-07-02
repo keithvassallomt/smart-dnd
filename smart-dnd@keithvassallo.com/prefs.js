@@ -1,5 +1,6 @@
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
+import Gdk from 'gi://Gdk';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import EDataServer from 'gi://EDataServer';
@@ -48,6 +49,11 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         const settings = this.getSettings();
         window._settings = settings;
         window.set_default_size(760, 640);
+
+        const iconsPath = `${this.path}/icons`;
+        const iconTheme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default());
+        if (!iconTheme.get_search_path().includes(iconsPath))
+            iconTheme.add_search_path(iconsPath);
 
         // The host (ExtensionPrefsDialog) rejects a window whose `visible_page`
         // is null after fillPreferencesWindow. Add a sentinel page to satisfy
@@ -116,7 +122,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
     _openAbout(window) {
         const about = new Adw.AboutDialog({
             application_name: 'Smart DND',
-            application_icon: 'notifications-disabled-symbolic',
+            application_icon: 'smart-dnd-symbolic',
             version: '1.0',
             developer_name: 'Keith Vassallo',
             license_type: Gtk.License.GPL_3_0,
