@@ -1,5 +1,5 @@
 import {test, assertEq} from './harness.js';
-import {formatWhen} from '../smart-dnd@keithvassallo.com/lib/format.js';
+import {formatWhen, formatWhenShort} from '../smart-dnd@keithvassallo.com/lib/format.js';
 
 const at = (y, mo, d, h, mi) => new Date(y, mo, d, h, mi, 0).getTime();
 
@@ -19,4 +19,14 @@ test('beyond a week -> weekday day month, HH:MM', () => {
 });
 test('zero-pads hours and minutes', () => {
     assertEq(formatWhen(at(2026, 6, 2, 8, 0), at(2026, 6, 2, 9, 5)), 'Today, 09:05');
+});
+test('formatWhenShort: today -> just the time', () => {
+    assertEq(formatWhenShort(at(2026, 6, 2, 8, 0), at(2026, 6, 2, 22, 5)), '22:05');
+});
+test('formatWhenShort: within a week -> Ddd @ HH:MM', () => {
+    // 2026-07-06 is a Monday
+    assertEq(formatWhenShort(at(2026, 6, 2, 8, 0), at(2026, 6, 6, 9, 30)), 'Mon @ 09:30');
+});
+test('formatWhenShort: beyond a week -> D Mmm @ HH:MM', () => {
+    assertEq(formatWhenShort(at(2026, 6, 2, 8, 0), at(2026, 6, 20, 9, 30)), '20 Jul @ 09:30');
 });
