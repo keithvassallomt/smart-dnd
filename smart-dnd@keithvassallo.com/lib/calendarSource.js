@@ -19,7 +19,7 @@ const IFACE = `
 </node>`;
 
 const CalendarProxy = Gio.DBusProxy.makeProxyWrapper(IFACE);
-const RANGE_SECONDS = 48 * 60 * 60;
+const RANGE_SECONDS = 7 * 24 * 60 * 60;
 
 function isAllDay(start, end) {
     if (end <= start) return false;

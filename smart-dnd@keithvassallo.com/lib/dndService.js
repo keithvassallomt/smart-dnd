@@ -2,8 +2,8 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
 import {parseList} from './store.js';
-import {anyActiveAt, nextTransition} from './schedule.js';
-import {rulesActiveAt, calendarNextTransition} from './calendarMatch.js';
+import {anyActiveAt, nextTransition, nextStart} from './schedule.js';
+import {rulesActiveAt, calendarNextTransition, nextEnable} from './calendarMatch.js';
 import {computeDesired, reconcile} from './coordinator.js';
 import {CalendarSource} from './calendarSource.js';
 
@@ -95,7 +95,9 @@ export class DndService {
         else if (action === 'off') this._setDnd(false);
 
         this._armTimer(schedules, rules, events, nowMs, ignoreAllDay);
-        this._updateStatus(desired, scheduleActive, calendarActive);
+        this._updateStatus(desired, scheduleActive, calendarActive, {
+            masterEnabled, schedules, rules, events, ignoreAllDay, nowMs,
+        });
     }
 
     _armTimer(schedules, rules, events, nowMs, ignoreAllDay) {
@@ -114,11 +116,29 @@ export class DndService {
         });
     }
 
-    _updateStatus(desired, scheduleActive, calendarActive) {
+    _updateStatus(desired, scheduleActive, calendarActive, ctx) {
         let reason = 'idle';
         if (desired && scheduleActive) reason = 'schedule';
         else if (desired && calendarActive) reason = 'calendar';
-        this._status = {active: desired, reason};
+
+        let nextOnMs = null;
+        if (ctx.masterEnabled && !desired) {
+            const candidates = [
+                nextStart(ctx.schedules, ctx.nowMs),
+                nextEnable(ctx.rules, ctx.events, ctx.nowMs, ctx.ignoreAllDay),
+            ].filter(t => t !== null);
+            if (candidates.length > 0) nextOnMs = Math.min(...candidates);
+        }
+        let nextOffMs = null;
+        if (desired) {
+            const candidates = [
+                nextTransition(ctx.schedules, ctx.nowMs),
+                calendarNextTransition(ctx.rules, ctx.events, ctx.nowMs, ctx.ignoreAllDay),
+            ].filter(t => t !== null);
+            if (candidates.length > 0) nextOffMs = Math.min(...candidates);
+        }
+
+        this._status = {active: desired, reason, nextOnMs, nextOffMs};
         for (const cb of this._statusHandlers) cb(this._status);
     }
 }
