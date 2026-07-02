@@ -45,16 +45,12 @@ preferences window.
 
 ## Screenshots
 
-<!-- Replace the placeholders below with real images, e.g. docs/screenshots/*.png -->
+![Quick Settings tile](https://github.com/user-attachments/assets/d486489d-b495-4978-bc99-561cbfd3f3d2)
 
-> 📸 _Placeholder — Quick Settings tile showing status_
-<!-- ![Quick Settings tile](docs/screenshots/quick-settings.png) -->
+![Schedules](https://github.com/user-attachments/assets/734f3fb2-2032-4d0f-98f2-cb717d8b790e)
 
-> 📸 _Placeholder — Schedules preferences page_
-<!-- ![Schedules](docs/screenshots/schedules.png) -->
-
-> 📸 _Placeholder — Calendar rule with match pattern and offsets_
-<!-- ![Calendar rules](docs/screenshots/calendar.png) -->
+![Calendar rules](https://github.com/user-attachments/assets/9082d7c4-b17b-4c29-bc41-a7314979b660)
+<!-- <img width="1620" height="1380" alt="calendar_rule" src="https://github.com/user-attachments/assets/9082d7c4-b17b-4c29-bc41-a7314979b660" /> -->
 
 ## Installation
 
