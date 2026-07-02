@@ -218,7 +218,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
             const save = () => settings.set_strv('calendar-rules', serializeList(rules));
             updaters = [];
             rows = rules.map((rule, i) => {
-                const built = this._ruleRow(rule, calendars, getEvents,
+                const built = this._ruleRow(rule, calendars, settings, getEvents,
                     () => { rules.splice(i, 1); save(); rebuild(); }, save);
                 updaters.push(built.updateNext);
                 return built.row;
@@ -234,8 +234,17 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         });
         rebuild();
 
-        let proxy = this._queryUpcomingEvents(events => { latestEvents = events; refresh(); });
-        window.connect('close-request', () => { proxy = null; return false; });
+        let alive = true;
+        const {proxy, signalId} = this._queryUpcomingEvents(events => {
+            if (!alive) return;
+            latestEvents = events;
+            refresh();
+        });
+        window.connect('close-request', () => {
+            alive = false;
+            proxy.disconnectSignal(signalId);
+            return false;
+        });
     }
 
     _queryUpcomingEvents(onEvents) {
@@ -250,7 +259,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         const proxy = new Proxy(Gio.DBus.session,
             'org.gnome.Shell.CalendarServer', '/org/gnome/Shell/CalendarServer');
         const collected = new Map();
-        proxy.connectSignal('EventsAddedOrUpdated', (_p, _s, [events]) => {
+        const signalId = proxy.connectSignal('EventsAddedOrUpdated', (_p, _s, [events]) => {
             for (const [id, summary, start, end] of events) {
                 collected.set(id, {
                     summary, start, end,
@@ -263,14 +272,14 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         const now = Math.floor(GLib.get_real_time() / 1e6);
         proxy.SetTimeRangeAsync(now, now + 7 * 24 * 60 * 60, false).catch(
             e => console.warn(`smart-dnd: prefs SetTimeRange failed: ${e.message}`));
-        return proxy;
+        return {proxy, signalId};
     }
 
-    _ruleRow(rule, calendars, getEvents, onRemove, save) {
+    _ruleRow(rule, calendars, settings, getEvents, onRemove, save) {
         const row = new Adw.ExpanderRow({title: escapeMarkup(rule.name || 'Rule')});
         const updateNext = (events) => {
             const now = GLib.get_real_time() / 1000;
-            const next = nextEnable([rule], events, now, true);
+            const next = nextEnable([rule], events, now, settings.get_boolean('ignore-all-day'));
             const when = next ? formatWhen(now, next) : '—';
             const base = rule.pattern || '(no pattern)';
             row.subtitle = escapeMarkup(`${base} · Next: ${when}`);

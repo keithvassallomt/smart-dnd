@@ -8,9 +8,9 @@ function subtitleFor(status) {
     const nowMs = GLib.get_real_time() / 1000;
     if (status.active) {
         const base = status.reason === 'calendar' ? 'On during event' : 'On';
-        return status.nextOffMs ? `${base} · until ${formatWhen(nowMs, status.nextOffMs)}` : base;
+        return status.nextOffMs != null ? `${base} · until ${formatWhen(nowMs, status.nextOffMs)}` : base;
     }
-    return status.nextOnMs ? `Next: ${formatWhen(nowMs, status.nextOnMs)}` : 'None scheduled';
+    return status.nextOnMs != null ? `Next: ${formatWhen(nowMs, status.nextOnMs)}` : 'None scheduled';
 }
 
 export const SmartDndIndicator = GObject.registerClass(
@@ -30,7 +30,7 @@ class SmartDndIndicator extends QuickSettings.SystemIndicator {
         this._toggle.menu.setHeader('notifications-disabled-symbolic', 'Smart DND');
         this._toggle.menu.addAction('Settings', () => extension.openPreferences());
 
-        service.connect('status-changed', (status) => {
+        this._statusUnsub = service.connect('status-changed', (status) => {
             this._toggle.subtitle = subtitleFor(status);
         });
 
@@ -38,6 +38,10 @@ class SmartDndIndicator extends QuickSettings.SystemIndicator {
     }
 
     destroy() {
+        if (this._statusUnsub) {
+            this._statusUnsub();
+            this._statusUnsub = null;
+        }
         Gio.Settings.unbind(this._toggle, 'checked');
         this.quickSettingsItems.forEach(item => item.destroy());
         super.destroy();

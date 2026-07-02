@@ -23,7 +23,10 @@ export class DndService {
         this._status = {active: false, reason: 'idle', nextOnMs: null, nextOffMs: null};
     }
 
-    connect(_signal, cb) { this._statusHandlers.push(cb); }
+    connect(_signal, cb) {
+        this._statusHandlers.push(cb);
+        return () => { this._statusHandlers = this._statusHandlers.filter(h => h !== cb); };
+    }
     getStatus() { return this._status; }
 
     start() {
