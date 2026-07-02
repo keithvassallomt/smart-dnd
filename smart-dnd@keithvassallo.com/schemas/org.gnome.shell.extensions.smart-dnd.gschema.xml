@@ -12,6 +12,11 @@
       <summary>Ignore all-day events</summary>
       <description>Do not trigger DND for all-day calendar events.</description>
     </key>
+    <key name="show-quick-settings" type="b">
+      <default>true</default>
+      <summary>Show Quick Settings tile</summary>
+      <description>Show the Smart DND toggle in the Quick Settings panel.</description>
+    </key>
     <key name="schedules" type="as">
       <default>[]</default>
       <summary>Time schedules</summary>
