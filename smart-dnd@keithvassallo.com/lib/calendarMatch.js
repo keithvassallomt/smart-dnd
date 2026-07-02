@@ -1,4 +1,5 @@
 export function titleMatches(rule, summary) {
+    if (typeof summary !== 'string' || typeof rule.pattern !== 'string') return false;
     const hay = summary.toLowerCase();
     const needle = rule.pattern.toLowerCase();
     switch (rule.matchType) {

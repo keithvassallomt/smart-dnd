@@ -332,13 +332,10 @@ export default class SmartDndPreferences extends ExtensionPreferences {
     }
 
     _calendarPicker(rule, calendars, save) {
-        const row = new Adw.ExpanderRow({
-            title: 'Calendars',
-            subtitle: rule.calendars.length === 0 ? 'All calendars' : `${rule.calendars.length} selected`,
-        });
-        const setSub = () => {
-            row.subtitle = rule.calendars.length === 0 ? 'All calendars' : `${rule.calendars.length} selected`;
-        };
+        const summary = () =>
+            rule.calendars.length === 0 ? 'All calendars' : `${rule.calendars.length} selected`;
+        const row = new Adw.ExpanderRow({title: 'Calendars', subtitle: summary()});
+        const setSub = () => { row.subtitle = summary(); };
         for (const cal of calendars) {
             const sw = new Adw.SwitchRow({title: escapeMarkup(cal.name), active: rule.calendars.includes(cal.uid)});
             sw.connect('notify::active', () => {

@@ -47,7 +47,10 @@ export function nextTransition(schedules, nowMs) {
     for (const s of enabled) {
         const start = toMinutes(s.start), end = toMinutes(s.end);
         const wraps = start > end;
-        for (let d = 0; d <= 8; d++) {
+        // Start at d = -1 so a window that began yesterday and wraps past midnight
+        // still has its end (which falls today) counted; past starts/ends are
+        // filtered out by the `> nowMs` checks below.
+        for (let d = -1; d <= 8; d++) {
             if (s.days.includes(localDow(now, d))) {
                 const startTs = localTs(now, d, start);
                 if (startTs > nowMs && (best === null || startTs < best)) best = startTs;

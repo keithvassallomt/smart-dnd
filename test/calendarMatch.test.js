@@ -19,6 +19,11 @@ test('titleMatches regex, invalid pattern is false not throw', () => {
     assertEq(titleMatches(r({matchType: 'regex', pattern: '^Sync\\d+$'}), 'Sync12'), true);
     assertEq(titleMatches(r({matchType: 'regex', pattern: '('}), 'anything'), false);
 });
+test('titleMatches returns false for non-string summary or pattern (no throw)', () => {
+    assertEq(titleMatches(r(), undefined), false);
+    assertEq(titleMatches(r(), null), false);
+    assertEq(titleMatches(r({pattern: undefined}), 'Team meeting'), false);
+});
 test('sourceAllowed honours calendars filter', () => {
     assertEq(sourceAllowed(r(), 'uid-x'), true);
     assertEq(sourceAllowed(r({calendars: ['uid-a']}), 'uid-a'), true);

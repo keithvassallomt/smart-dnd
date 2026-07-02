@@ -32,3 +32,7 @@ test('no edge never acts', () => {
     assertEq(reconcile({desired: false, lastDesired: false, owned: false, dndOn: true}),
         {owned: false, action: null});
 });
+test('falling edge we own but DND already manually off: no action, release ownership', () => {
+    assertEq(reconcile({desired: false, lastDesired: true, owned: true, dndOn: false}),
+        {owned: false, action: null});
+});

@@ -46,6 +46,13 @@ test('nextTransition finds the next boundary', () => {
 test('nextTransition returns null with no schedules', () => {
     assertEq(nextTransition([], Date.now()), null);
 });
+test('nextTransition catches a wrap window ending today (post-midnight tail)', () => {
+    // Mon–Fri 22:00–07:00. now = Tue 03:00, inside Monday's window tail.
+    // The next boundary is Tue 07:00 (DND turns off), not Tue 22:00.
+    const s = {name: 'W', days: [1, 2, 3, 4, 5], start: '22:00', end: '07:00', enabled: true};
+    const now = new Date(2026, 0, 6, 3, 0).getTime(); // 2026-01-06 is a Tuesday
+    assertEq(nextTransition([s], now), new Date(2026, 0, 6, 7, 0).getTime());
+});
 test('nextTransition is DST-correct across the spring-forward day', () => {
     // In DST zones a day with a clock change is not 24h; the boundary must land
     // at the real local wall-clock time, not an hour off.
