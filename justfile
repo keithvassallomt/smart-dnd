@@ -60,19 +60,14 @@ release version kind="Feature release":
     prev=$(git tag --sort=-v:refname | head -n1 || true)
 
     notes=$(mktemp)
-    {
-        echo "{{kind}}. Supports GNOME Shell $versions on Wayland."
-        echo
-        if [ -n "{{ego_url}}" ]; then
-            echo "<a href=\"{{ego_url}}\"><img width=\"300\" height=\"139\" alt=\"get-it-on-ego\" src=\"{{ego_badge}}\" /></a>"
-            echo
-        fi
-        echo "$section"
-        if [ -n "$prev" ]; then
-            echo
-            echo "**Full changelog:** https://github.com/{{repo}}/compare/$prev...$tag"
-        fi
-    } > "$notes"
+    printf '%s\n\n' "{{kind}}. Supports GNOME Shell $versions." > "$notes"
+    if [ -n "{{ego_url}}" ]; then
+        printf '%s\n\n' "<a href=\"{{ego_url}}\"><img width=\"300\" height=\"139\" alt=\"get-it-on-ego\" src=\"{{ego_badge}}\" /></a>" >> "$notes"
+    fi
+    printf '%s\n' "$section" >> "$notes"
+    if [ -n "$prev" ]; then
+        printf '\n%s\n' "**Full changelog:** https://github.com/{{repo}}/compare/$prev...$tag" >> "$notes"
+    fi
 
     echo "--- release notes for $tag ---"; cat "$notes"; echo "---"
     git push origin main
