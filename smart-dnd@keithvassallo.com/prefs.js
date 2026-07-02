@@ -165,14 +165,15 @@ export default class SmartDndPreferences extends ExtensionPreferences {
             row.subtitle = `${sched.start} – ${sched.end} · Next: ${when}`;
         };
         setSub();
+        const save2 = () => { save(); setSub(); };
 
         const name = new Adw.EntryRow({title: 'Name', text: sched.name});
         name.connect('changed', () => {
             sched.name = name.text; row.title = escapeMarkup(name.text || 'Schedule'); save();
         });
         row.add_row(name);
-        row.add_row(this._timeRow('Start', sched.start, v => { sched.start = v; setSub(); save(); }));
-        row.add_row(this._timeRow('End', sched.end, v => { sched.end = v; setSub(); save(); }));
+        row.add_row(this._timeRow('Start', sched.start, v => { sched.start = v; save2(); }));
+        row.add_row(this._timeRow('End', sched.end, v => { sched.end = v; save2(); }));
 
         const days = new Adw.ActionRow({title: 'Days'});
         const box = new Gtk.Box({spacing: 4, valign: Gtk.Align.CENTER});
@@ -182,7 +183,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
                 const set = new Set(sched.days);
                 btn.active ? set.add(dow) : set.delete(dow);
                 sched.days = [...set].sort((a, b) => a - b);
-                save();
+                save2();
             });
             box.append(btn);
         });
@@ -190,7 +191,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         row.add_row(days);
 
         const enabled = new Adw.SwitchRow({title: 'Enabled', active: sched.enabled});
-        enabled.connect('notify::active', () => { sched.enabled = enabled.active; save(); });
+        enabled.connect('notify::active', () => { sched.enabled = enabled.active; save2(); });
         row.add_row(enabled);
         return row;
     }
@@ -285,6 +286,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
             row.subtitle = escapeMarkup(`${base} · Next: ${when}`);
         };
         updateNext(getEvents());
+        const save2 = () => { save(); updateNext(getEvents()); };
 
         const trash = iconButton('user-trash-symbolic', 'Remove', ['flat']);
         trash.connect('clicked', onRemove);
@@ -301,25 +303,24 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         });
         match.selected = Math.max(0, MATCH_TYPES.findIndex(m => m[0] === rule.matchType));
         match.connect('notify::selected', () => {
-            rule.matchType = MATCH_TYPES[match.selected][0]; save();
+            rule.matchType = MATCH_TYPES[match.selected][0]; save2();
         });
         row.add_row(match);
 
         const pattern = new Adw.EntryRow({title: 'Pattern', text: rule.pattern});
         pattern.connect('changed', () => {
-            rule.pattern = pattern.text; save();
-            updateNext(getEvents());
+            rule.pattern = pattern.text; save2();
         });
         row.add_row(pattern);
 
         if (calendars.length > 0)
-            row.add_row(this._calendarPicker(rule, calendars, save));
+            row.add_row(this._calendarPicker(rule, calendars, save2));
 
-        row.add_row(this._offsetRow('Enable DND', ENABLE_DIR, rule, 'enableOffsetMin', save));
-        row.add_row(this._offsetRow('Disable DND', DISABLE_DIR, rule, 'disableOffsetMin', save));
+        row.add_row(this._offsetRow('Enable DND', ENABLE_DIR, rule, 'enableOffsetMin', save2));
+        row.add_row(this._offsetRow('Disable DND', DISABLE_DIR, rule, 'disableOffsetMin', save2));
 
         const enabled = new Adw.SwitchRow({title: 'Enabled', active: rule.enabled});
-        enabled.connect('notify::active', () => { rule.enabled = enabled.active; save(); });
+        enabled.connect('notify::active', () => { rule.enabled = enabled.active; save2(); });
         row.add_row(enabled);
         return {row, updateNext};
     }
