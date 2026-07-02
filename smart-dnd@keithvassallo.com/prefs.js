@@ -17,6 +17,10 @@ const MAG_LABELS = ['1 minute', '5 minutes', '10 minutes', '15 minutes', 'Custom
 const ENABLE_DIR = ['At event start', 'Before event', 'After event'];
 const DISABLE_DIR = ['At event end', 'Before event end', 'After event end'];
 
+function escapeMarkup(text) {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function listCalendars() {
     try {
         const reg = EDataServer.SourceRegistry.new_sync(null);
@@ -41,40 +45,15 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         window._settings = settings;
         window.set_default_size(760, 640);
 
-        const stack = new Adw.ViewStack();
-        this._buildSchedulePage(stack, settings);
-        this._buildCalendarPage(stack, settings);
-
-        const switcher = new Adw.ViewSwitcher({stack, policy: Adw.ViewSwitcherPolicy.WIDE});
-        const header = new Adw.HeaderBar({title_widget: switcher});
-
-        const menu = new Gio.Menu();
-        menu.append('General Settings', 'prefs.general');
-        menu.append('About Smart DND', 'prefs.about');
-        header.pack_end(new Gtk.MenuButton({
-            icon_name: 'open-menu-symbolic', menu_model: menu, primary: true,
-        }));
-
-        const actions = new Gio.SimpleActionGroup();
-        const general = new Gio.SimpleAction({name: 'general'});
-        general.connect('activate', () => this._openGeneral(window, settings));
-        actions.add_action(general);
-        const about = new Gio.SimpleAction({name: 'about'});
-        about.connect('activate', () => this._openAbout(window));
-        actions.add_action(about);
-        window.insert_action_group('prefs', actions);
-
-        const toolbar = new Adw.ToolbarView();
-        toolbar.add_top_bar(header);
-        toolbar.set_content(stack);
-        window.set_content(toolbar);
+        this._buildSchedulePage(window, settings);
+        this._buildCalendarPage(window, settings);
+        this._buildGeneralPage(window, settings);
     }
 
-    _openGeneral(window, settings) {
-        const dialog = new Adw.PreferencesDialog({title: 'General Settings'});
-        const page = new Adw.PreferencesPage();
-        const group = new Adw.PreferencesGroup();
+    _buildGeneralPage(window, settings) {
+        const page = new Adw.PreferencesPage({title: 'General', icon_name: 'preferences-system-symbolic'});
 
+        const group = new Adw.PreferencesGroup();
         const master = new Adw.SwitchRow({title: 'Enable automation'});
         settings.bind('master-enabled', master, 'active', Gio.SettingsBindFlags.DEFAULT);
         group.add(master);
@@ -92,10 +71,16 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         });
         settings.bind('ignore-all-day', allDay, 'active', Gio.SettingsBindFlags.DEFAULT);
         group.add(allDay);
-
         page.add(group);
-        dialog.add(page);
-        dialog.present(window);
+
+        const aboutGroup = new Adw.PreferencesGroup();
+        const aboutRow = new Adw.ActionRow({title: 'About Smart DND', activatable: true});
+        aboutRow.add_suffix(new Gtk.Image({icon_name: 'go-next-symbolic'}));
+        aboutRow.connect('activated', () => this._openAbout(window));
+        aboutGroup.add(aboutRow);
+        page.add(aboutGroup);
+
+        window.add(page);
     }
 
     _openAbout(window) {
@@ -111,13 +96,13 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         about.present(window);
     }
 
-    _buildSchedulePage(stack, settings) {
-        const page = new Adw.PreferencesPage();
+    _buildSchedulePage(window, settings) {
+        const page = new Adw.PreferencesPage({title: 'Schedule', icon_name: 'alarm-symbolic'});
         const group = new Adw.PreferencesGroup({title: 'Schedules'});
         const addBtn = iconButton('list-add-symbolic', 'Add schedule', ['flat']);
         group.set_header_suffix(addBtn);
         page.add(group);
-        stack.add_titled_with_icon(page, 'schedule', 'Schedule', 'alarm-symbolic');
+        window.add(page);
 
         let rows = [];
         const rebuild = () => {
@@ -139,7 +124,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
 
     _scheduleRow(sched, onRemove, save) {
         const row = new Adw.ExpanderRow({
-            title: sched.name || 'Schedule',
+            title: escapeMarkup(sched.name || 'Schedule'),
             subtitle: `${sched.start} – ${sched.end}`,
         });
         const trash = iconButton('user-trash-symbolic', 'Remove', ['flat']);
@@ -148,7 +133,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
 
         const name = new Adw.EntryRow({title: 'Name', text: sched.name});
         name.connect('changed', () => {
-            sched.name = name.text; row.title = name.text || 'Schedule'; save();
+            sched.name = name.text; row.title = escapeMarkup(name.text || 'Schedule'); save();
         });
         row.add_row(name);
 
@@ -177,8 +162,8 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         return row;
     }
 
-    _buildCalendarPage(stack, settings) {
-        const page = new Adw.PreferencesPage();
+    _buildCalendarPage(window, settings) {
+        const page = new Adw.PreferencesPage({title: 'Calendar', icon_name: 'x-office-calendar-symbolic'});
         const group = new Adw.PreferencesGroup({
             title: 'Calendar rules',
             description: 'Turn on DND during matching events in your calendars',
@@ -186,7 +171,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         const addBtn = iconButton('list-add-symbolic', 'Add rule', ['flat']);
         group.set_header_suffix(addBtn);
         page.add(group);
-        stack.add_titled_with_icon(page, 'calendar', 'Calendar', 'x-office-calendar-symbolic');
+        window.add(page);
 
         const calendars = listCalendars();
         let rows = [];
@@ -208,14 +193,17 @@ export default class SmartDndPreferences extends ExtensionPreferences {
     }
 
     _ruleRow(rule, calendars, onRemove, save) {
-        const row = new Adw.ExpanderRow({title: rule.name || 'Rule', subtitle: rule.pattern});
+        const row = new Adw.ExpanderRow({
+            title: escapeMarkup(rule.name || 'Rule'),
+            subtitle: escapeMarkup(rule.pattern),
+        });
         const trash = iconButton('user-trash-symbolic', 'Remove', ['flat']);
         trash.connect('clicked', onRemove);
         row.add_suffix(trash);
 
         const name = new Adw.EntryRow({title: 'Name', text: rule.name});
         name.connect('changed', () => {
-            rule.name = name.text; row.title = name.text || 'Rule'; save();
+            rule.name = name.text; row.title = escapeMarkup(name.text || 'Rule'); save();
         });
         row.add_row(name);
 
@@ -230,7 +218,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
 
         const pattern = new Adw.EntryRow({title: 'Pattern', text: rule.pattern});
         pattern.connect('changed', () => {
-            rule.pattern = pattern.text; row.subtitle = pattern.text; save();
+            rule.pattern = pattern.text; row.subtitle = escapeMarkup(pattern.text); save();
         });
         row.add_row(pattern);
 
@@ -255,7 +243,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
             row.subtitle = rule.calendars.length === 0 ? 'All calendars' : `${rule.calendars.length} selected`;
         };
         for (const cal of calendars) {
-            const sw = new Adw.SwitchRow({title: cal.name, active: rule.calendars.includes(cal.uid)});
+            const sw = new Adw.SwitchRow({title: escapeMarkup(cal.name), active: rule.calendars.includes(cal.uid)});
             sw.connect('notify::active', () => {
                 const set = new Set(rule.calendars);
                 sw.active ? set.add(cal.uid) : set.delete(cal.uid);
