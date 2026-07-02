@@ -4,3 +4,4 @@ po/*.mo
 venv/
 .superpowers/
 plan.md
+cal_signals.txt
