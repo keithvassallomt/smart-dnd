@@ -1,12 +1,16 @@
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import EDataServer from 'gi://EDataServer';
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 import {parseList, serializeList, newId, SCHEDULE_DEFAULTS, RULE_DEFAULTS}
     from './lib/store.js';
 import {offsetToUi, uiToOffset, MAG_MINUTES} from './lib/offset.js';
+import {nextStart} from './lib/schedule.js';
+import {nextEnable} from './lib/calendarMatch.js';
+import {formatWhen} from './lib/format.js';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MATCH_TYPES = [
@@ -149,21 +153,24 @@ export default class SmartDndPreferences extends ExtensionPreferences {
     }
 
     _scheduleRow(sched, onRemove, save) {
-        const row = new Adw.ExpanderRow({
-            title: escapeMarkup(sched.name || 'Schedule'),
-            subtitle: `${sched.start} – ${sched.end}`,
-        });
+        const row = new Adw.ExpanderRow({title: escapeMarkup(sched.name || 'Schedule')});
         const trash = iconButton('user-trash-symbolic', 'Remove', ['flat']);
         trash.connect('clicked', onRemove);
         row.add_suffix(trash);
+
+        const setSub = () => {
+            const now = GLib.get_real_time() / 1000;
+            const next = nextStart([sched], now);
+            const when = next ? formatWhen(now, next) : '—';
+            row.subtitle = `${sched.start} – ${sched.end} · Next: ${when}`;
+        };
+        setSub();
 
         const name = new Adw.EntryRow({title: 'Name', text: sched.name});
         name.connect('changed', () => {
             sched.name = name.text; row.title = escapeMarkup(name.text || 'Schedule'); save();
         });
         row.add_row(name);
-
-        const setSub = () => { row.subtitle = `${sched.start} – ${sched.end}`; };
         row.add_row(this._timeRow('Start', sched.start, v => { sched.start = v; setSub(); save(); }));
         row.add_row(this._timeRow('End', sched.end, v => { sched.end = v; setSub(); save(); }));
 
@@ -201,13 +208,24 @@ export default class SmartDndPreferences extends ExtensionPreferences {
 
         const calendars = listCalendars();
         let rows = [];
+        let updaters = [];
+        const refresh = () => {
+            const events = this._lastCalendarEvents ?? [];
+            for (const u of updaters) u(events);
+        };
         const rebuild = () => {
             for (const r of rows) group.remove(r);
             const rules = parseList(settings.get_strv('calendar-rules'));
             const save = () => settings.set_strv('calendar-rules', serializeList(rules));
-            rows = rules.map((rule, i) =>
-                this._ruleRow(rule, calendars, () => { rules.splice(i, 1); save(); rebuild(); }, save));
+            updaters = [];
+            rows = rules.map((rule, i) => {
+                const built = this._ruleRow(rule, calendars,
+                    () => { rules.splice(i, 1); save(); rebuild(); }, save);
+                updaters.push(built.updateNext);
+                return built.row;
+            });
             for (const r of rows) group.add(r);
+            refresh();
         };
         addBtn.connect('clicked', () => {
             const rules = parseList(settings.get_strv('calendar-rules'));
@@ -216,13 +234,51 @@ export default class SmartDndPreferences extends ExtensionPreferences {
             rebuild();
         });
         rebuild();
+        this._calendarProxy = this._queryUpcomingEvents(events => {
+            this._lastCalendarEvents = events;
+            refresh();
+        });
+    }
+
+    _queryUpcomingEvents(onEvents) {
+        const iface = `
+        <node><interface name="org.gnome.Shell.CalendarServer">
+          <method name="SetTimeRange">
+            <arg type="x" direction="in"/><arg type="x" direction="in"/><arg type="b" direction="in"/>
+          </method>
+          <signal name="EventsAddedOrUpdated"><arg type="a(ssxxa{sv})"/></signal>
+        </interface></node>`;
+        const Proxy = Gio.DBusProxy.makeProxyWrapper(iface);
+        const proxy = new Proxy(Gio.DBus.session,
+            'org.gnome.Shell.CalendarServer', '/org/gnome/Shell/CalendarServer');
+        const collected = new Map();
+        proxy.connectSignal('EventsAddedOrUpdated', (_p, _s, [events]) => {
+            for (const [id, summary, start, end] of events) {
+                collected.set(id, {
+                    summary, start, end,
+                    sourceUid: id.split('\n')[0],
+                    allDay: (end > start) && ((end - start) % 86400 === 0),
+                });
+            }
+            onEvents([...collected.values()]);
+        });
+        const now = Math.floor(GLib.get_real_time() / 1e6);
+        proxy.SetTimeRangeAsync(now, now + 7 * 24 * 60 * 60, false).catch(
+            e => console.warn(`smart-dnd: prefs SetTimeRange failed: ${e.message}`));
+        return proxy;
     }
 
     _ruleRow(rule, calendars, onRemove, save) {
-        const row = new Adw.ExpanderRow({
-            title: escapeMarkup(rule.name || 'Rule'),
-            subtitle: escapeMarkup(rule.pattern),
-        });
+        const row = new Adw.ExpanderRow({title: escapeMarkup(rule.name || 'Rule')});
+        const updateNext = (events) => {
+            const now = GLib.get_real_time() / 1000;
+            const next = nextEnable([rule], events, now, true);
+            const when = next ? formatWhen(now, next) : '—';
+            const base = rule.pattern || '(no pattern)';
+            row.subtitle = escapeMarkup(`${base} · Next: ${when}`);
+        };
+        updateNext(this._lastCalendarEvents ?? []);
+
         const trash = iconButton('user-trash-symbolic', 'Remove', ['flat']);
         trash.connect('clicked', onRemove);
         row.add_suffix(trash);
@@ -244,7 +300,8 @@ export default class SmartDndPreferences extends ExtensionPreferences {
 
         const pattern = new Adw.EntryRow({title: 'Pattern', text: rule.pattern});
         pattern.connect('changed', () => {
-            rule.pattern = pattern.text; row.subtitle = escapeMarkup(pattern.text); save();
+            rule.pattern = pattern.text; save();
+            updateNext(this._lastCalendarEvents ?? []);
         });
         row.add_row(pattern);
 
@@ -257,7 +314,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         const enabled = new Adw.SwitchRow({title: 'Enabled', active: rule.enabled});
         enabled.connect('notify::active', () => { rule.enabled = enabled.active; save(); });
         row.add_row(enabled);
-        return row;
+        return {row, updateNext};
     }
 
     _calendarPicker(rule, calendars, save) {
