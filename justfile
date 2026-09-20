@@ -52,7 +52,7 @@ release version kind="Feature release":
     git rev-parse -q --verify "refs/tags/$tag" >/dev/null && { echo "Tag $tag already exists." >&2; exit 1; } || true
     grep -q "^## \[{{version}}\]" CHANGELOG.md || { echo "No CHANGELOG.md entry for {{version}}." >&2; exit 1; }
 
-    versions=$(python3 -c "import json;print(' and '.join(json.load(open('{{uuid}}/metadata.json'))['shell-version']))")
+    versions=$(python3 -c "import json;v=json.load(open('{{uuid}}/metadata.json'))['shell-version'];print(v[0] if len(v) == 1 else ' and '.join([', '.join(v[:-1]), v[-1]]))")
     # Extract the version's CHANGELOG section, promote ### -> ##, then reflow
     # wrapped lines into single lines per bullet/paragraph (GitHub renders release
     # notes with hard line breaks, so wrapped source would otherwise show narrow).

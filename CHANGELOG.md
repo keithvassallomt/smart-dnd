@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-20
+
+### Added
+
+- **GNOME Shell 51 support** — verified against the GNOME 51 extension API; no
+  behaviour changes.
+
 ## [0.1.0] - 2026-07-02
 
 ### Added
@@ -38,5 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   boundaries (never fighting a manual DND change) and releases any DND it enabled
   when the extension is disabled.
 
-[Unreleased]: https://github.com/keithvassallomt/smart-dnd/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/keithvassallomt/smart-dnd/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/keithvassallomt/smart-dnd/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/keithvassallomt/smart-dnd/releases/tag/v0.1.0
