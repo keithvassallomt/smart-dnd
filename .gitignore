@@ -5,3 +5,4 @@ venv/
 .superpowers/
 plan.md
 cal_signals.txt
+.vscode/
