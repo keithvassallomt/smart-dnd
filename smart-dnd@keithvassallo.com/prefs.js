@@ -3,7 +3,6 @@ import Gtk from 'gi://Gtk';
 import Gdk from 'gi://Gdk';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-import EDataServer from 'gi://EDataServer';
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 import {parseList, serializeList, newId, SCHEDULE_DEFAULTS, RULE_DEFAULTS}
@@ -21,12 +20,26 @@ const MATCH_TYPES = [
 const MAG_LABELS = ['1 minute', '5 minutes', '10 minutes', '15 minutes', 'Custom'];
 const ENABLE_DIR = ['At event start', 'Before event', 'After event'];
 const DISABLE_DIR = ['At event end', 'Before event end', 'After event end'];
+const CALENDAR_SELECTION_DOC =
+    'https://github.com/keithvassallomt/smart-dnd/blob/main/docs/calendar-selection.md';
+
+// EDataServer is only used to list calendars for the per-rule picker. Its
+// typelib ships separately on some distros (see CALENDAR_SELECTION_DOC), so
+// load it optionally rather than failing the whole window.
+let EDataServer = null;
+try {
+    EDataServer = (await import('gi://EDataServer')).default;
+} catch (e) {
+    console.warn(`smart-dnd: EDataServer unavailable, calendar picker disabled: ${e.message}`);
+}
 
 function escapeMarkup(text) {
     return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function listCalendars() {
+    if (!EDataServer)
+        return [];
     try {
         const reg = EDataServer.SourceRegistry.new_sync(null);
         return reg.list_sources(EDataServer.SOURCE_EXTENSION_CALENDAR)
@@ -129,7 +142,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         const about = new Adw.AboutDialog({
             application_name: 'Smart DND',
             application_icon: 'smart-dnd',
-            version: '1.1',
+            version: '0.1.2',
             developer_name: 'Keith Vassallo',
             license_type: Gtk.License.GPL_3_0,
             website: 'https://github.com/keithvassallomt/smart-dnd',
@@ -215,7 +228,12 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         const page = new Adw.PreferencesPage();
         const group = new Adw.PreferencesGroup({
             title: 'Calendar rules',
-            description: 'Turn on DND during matching events in your calendars',
+            description: EDataServer
+                ? 'Turn on DND during matching events in your calendars'
+                : 'Turn on DND during matching events in your calendars.\n\nTo match DND to ' +
+                  'specific calendars, you need to install Evolution Data Server introspection ' +
+                  'data, which is missing on this system. Find out how to install it ' +
+                  `<a href="${CALENDAR_SELECTION_DOC}">here</a>.`,
         });
         const addBtn = iconButton('list-add-symbolic', 'Add rule', ['flat']);
         group.set_header_suffix(addBtn);

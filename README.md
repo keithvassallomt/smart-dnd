@@ -4,6 +4,13 @@
   <img src="assets/smart-dnd.svg" width="120" alt="Smart DND logo">
 </p>
 
+> [!NOTE]
+> This is the **GNOME extension** version of Smart DND. It's built specifically
+> for GNOME users who have added their calendars to GNOME Online Accounts. For a
+> more general-purpose version that supports other calendar backends and other
+> desktop environments, see
+> [Smart DND for Linux](https://github.com/keithvassallomt/smart-dnd-linux).
+
 Automatically enable **Do Not Disturb** on a schedule or during matching calendar
 events — so notifications go quiet during your sleep hours, focus blocks, and
 meetings, and come back on their own afterwards.
@@ -53,6 +60,17 @@ preferences window.
 <!-- <img width="1620" height="1380" alt="calendar_rule" src="https://github.com/user-attachments/assets/9082d7c4-b17b-4c29-bc41-a7314979b660" /> -->
 
 ## Installation
+
+### Requirements
+
+Smart DND reads events through GNOME Shell's own calendar service, so it needs
+nothing extra to run. Choosing *specific* calendars for a rule also needs the
+Evolution Data Server introspection data, which some distros (including Ubuntu
+and Debian) don't install by default. Without it, the calendar picker is hidden
+and rules apply to all calendars.
+
+See [Choosing specific calendars](docs/calendar-selection.md) for the one-line
+install command for your distro.
 
 ### From extensions.gnome.org
 

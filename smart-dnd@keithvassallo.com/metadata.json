@@ -5,7 +5,7 @@
   "shell-version": ["49", "50", "51"],
   "settings-schema": "org.gnome.shell.extensions.smart-dnd",
   "url": "https://github.com/keithvassallomt/smart-dnd",
-  "version-name": "1.1",
+  "version-name": "0.1.2",
   "donations": {
     "github": "keithvassallomt"
   }

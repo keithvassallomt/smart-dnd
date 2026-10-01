@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-01
+
+### Fixed
+
+- **Preferences failing to open without the EDataServer typelib** (#1): on
+  distros that package it separately (e.g. `gir1.2-edataserver-1.2` on
+  Debian/Ubuntu), the preferences window crashed on load. It now opens normally;
+  only the per-rule calendar picker is hidden, and the Calendar page links to
+  [install instructions](https://github.com/keithvassallomt/smart-dnd/blob/main/docs/calendar-selection.md) for the missing package.
+  Thanks to [@Spurlos](https://github.com/Spurlos) for reporting this and
+  finding the missing package.
+
 ## [0.1.1] - 2026-09-20
 
 ### Added
@@ -45,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   boundaries (never fighting a manual DND change) and releases any DND it enabled
   when the extension is disabled.
 
-[Unreleased]: https://github.com/keithvassallomt/smart-dnd/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/keithvassallomt/smart-dnd/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/keithvassallomt/smart-dnd/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/keithvassallomt/smart-dnd/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/keithvassallomt/smart-dnd/releases/tag/v0.1.0
