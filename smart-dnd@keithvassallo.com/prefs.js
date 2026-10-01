@@ -142,7 +142,7 @@ export default class SmartDndPreferences extends ExtensionPreferences {
         const about = new Adw.AboutDialog({
             application_name: 'Smart DND',
             application_icon: 'smart-dnd',
-            version: '0.1.2',
+            version: '1.2',
             developer_name: 'Keith Vassallo',
             license_type: Gtk.License.GPL_3_0,
             website: 'https://github.com/keithvassallomt/smart-dnd',
